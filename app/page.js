@@ -1,4 +1,4 @@
-import Scene from '@/components/Scene'; // Import the scene
+import Scene from  "../components/Scene";
 
 export default function Home() {
   return (
