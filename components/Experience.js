@@ -2,15 +2,14 @@
 
 import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Text } from '@react-three/drei'; // 1. Import Text
 
 export default function Experience() {
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
 
-  // 1. Create the audio object once. 
-  // Make sure 'hover.mp3' exists in your /public folder!
+  // Audio setup (kept from previous step)
   const hoverSound = useMemo(() => {
-    // Check if window is defined (to avoid server-side errors)
     if (typeof window !== 'undefined') {
       return new Audio('/hover.mp3'); 
     }
@@ -19,27 +18,31 @@ export default function Experience() {
 
   useFrame((state, delta) => {
     if (meshRef.current) {
-      meshRef.current.rotation.x += delta * 0.5;
+      // Rotate the fire slightly
       meshRef.current.rotation.y += delta * 0.5;
     }
   });
 
   return (
-    <mesh
+    <Text
       ref={meshRef}
       onPointerOver={() => {
         setHover(true);
-        // 2. Play sound on hover
         if (hoverSound) {
-          hoverSound.currentTime = 0; // Reset sound to start so it can be spammed
-          hoverSound.play().catch((e) => console.log("Interaction required first:", e));
+          hoverSound.currentTime = 0;
+          hoverSound.play().catch((e) => console.log(e));
         }
       }}
       onPointerOut={() => setHover(false)}
-      scale={hovered ? 1.1 : 1}
+      
+      // 2. Animation Props
+      scale={hovered ? 1.5 : 1}   // Scales up 1.5x on hover
+      color={hovered ? "#ff0000" : "#ff4500"} // Changes color from orange-red to red
+      anchorX="center" 
+      anchorY="middle"
+      fontSize={2}
     >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
-    </mesh>
+      🔥
+    </Text>
   );
 }
