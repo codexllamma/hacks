@@ -1,17 +1,13 @@
 import Scene from  "../components/Scene";
+import CooperApp from "./pages/main";
+import CooperApp from "./pages/main";
 
 export default function Home() {
   return (
     <main className="relative w-full h-screen">
-      {/* 1. The 3D Background */}
-      <div className="absolute inset-0 z-0">
-        <Scene />
-      </div>
-
+  
+      <CooperApp/>
       {/* 2. Content Overlay */}
-      <div className="relative z-10 p-10 text-white pointer-events-none">
-         <h1 className="text-4xl font-bold">Sponsor ki chatke brownie points lenge.</h1>
-      </div>
     </main>
   );
 }
