@@ -32,28 +32,62 @@ function HumanoidCharacter({ color, isPaid, isHovered }) {
   return (
     <group>
       <group ref={bodyRef} position={[0, 0.85, 0]}>
-        <mesh position={[0, 0.6, 0]} castShadow><boxGeometry args={[0.3, 0.35, 0.3]} /><meshStandardMaterial color="#ffdbac" roughness={0.5} /></mesh>
-        <mesh position={[0, 0, 0]} castShadow><boxGeometry args={[0.4, 0.75, 0.25]} /><meshStandardMaterial color={color} emissive={isPaid ? color : "#000000"} emissiveIntensity={isPaid ? 0.6 : 0} roughness={0.7} /></mesh>
-        <group ref={leftArmRef} position={[-0.28, 0.3, 0]}><mesh position={[0, -0.3, 0]} castShadow><boxGeometry args={[0.12, 0.65, 0.12]} /><meshStandardMaterial color={color} roughness={0.7} /></mesh></group>
-        <group ref={rightArmRef} position={[0.28, 0.3, 0]}><mesh position={[0, -0.3, 0]} castShadow><boxGeometry args={[0.12, 0.65, 0.12]} /><meshStandardMaterial color={color} roughness={0.7} /></mesh></group>
+        <mesh position={[0, 0.6, 0]} castShadow>
+          <boxGeometry args={[0.3, 0.35, 0.3]} />
+          <meshStandardMaterial color="#ffdbac" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0]} castShadow>
+          <boxGeometry args={[0.4, 0.75, 0.25]} />
+          <meshStandardMaterial color={color} emissive={isPaid ? color : "#000000"} emissiveIntensity={isPaid ? 0.6 : 0} roughness={0.7} />
+        </mesh>
+        <group ref={leftArmRef} position={[-0.28, 0.3, 0]}>
+          <mesh position={[0, -0.3, 0]} castShadow>
+            <boxGeometry args={[0.12, 0.65, 0.12]} />
+            <meshStandardMaterial color={color} roughness={0.7} />
+          </mesh>
+        </group>
+        <group ref={rightArmRef} position={[0.28, 0.3, 0]}>
+          <mesh position={[0, -0.3, 0]} castShadow>
+            <boxGeometry args={[0.12, 0.65, 0.12]} />
+            <meshStandardMaterial color={color} roughness={0.7} />
+          </mesh>
+        </group>
       </group>
-      <mesh position={[-0.11, 0.25, 0]} castShadow><boxGeometry args={[0.14, 0.55, 0.14]} /><meshStandardMaterial color="#1f2937" roughness={0.9} /></mesh>
-      <mesh position={[0.11, 0.25, 0]} castShadow><boxGeometry args={[0.14, 0.55, 0.14]} /><meshStandardMaterial color="#1f2937" roughness={0.9} /></mesh>
+      <mesh position={[-0.11, 0.25, 0]} castShadow>
+        <boxGeometry args={[0.14, 0.55, 0.14]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.11, 0.25, 0]} castShadow>
+        <boxGeometry args={[0.14, 0.55, 0.14]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
     </group>
   )
 }
 
 function TheatreSeat() {
-  const velvetMat = new THREE.MeshStandardMaterial({ color: '#800000', roughness: 0.9 })
-  const blackMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.5 })
-  
   return (
-    <group scale={0.5}> {/* Made seats significantly smaller */}
-      <mesh position={[0, 0.1, 0]}><cylinderGeometry args={[0.08, 0.1, 0.2]} /><primitive object={blackMat} /></mesh>
-      <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.5, 0.12, 0.5]} /><primitive object={velvetMat} /></mesh>
-      <mesh position={[0, 0.7, 0.2]} rotation={[-0.1, 0, 0]}><boxGeometry args={[0.5, 0.7, 0.1]} /><primitive object={velvetMat} /></mesh>
-      <mesh position={[-0.3, 0.45, 0]}><boxGeometry args={[0.08, 0.04, 0.4]} /><primitive object={blackMat} /></mesh>
-      <mesh position={[0.3, 0.45, 0]}><boxGeometry args={[0.08, 0.04, 0.4]} /><primitive object={blackMat} /></mesh>
+    <group scale={0.5}>
+      <mesh position={[0, 0.1, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.2]} />
+        <meshStandardMaterial color="#111111" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.3, 0]}>
+        <boxGeometry args={[0.5, 0.12, 0.5]} />
+        <meshStandardMaterial color="#800000" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.7, 0.2]} rotation={[-0.1, 0, 0]}>
+        <boxGeometry args={[0.5, 0.7, 0.1]} />
+        <meshStandardMaterial color="#800000" roughness={0.9} />
+      </mesh>
+      <mesh position={[-0.3, 0.45, 0]}>
+        <boxGeometry args={[0.08, 0.04, 0.4]} />
+        <meshStandardMaterial color="#111111" roughness={0.5} />
+      </mesh>
+      <mesh position={[0.3, 0.45, 0]}>
+        <boxGeometry args={[0.08, 0.04, 0.4]} />
+        <meshStandardMaterial color="#111111" roughness={0.5} />
+      </mesh>
     </group>
   )
 }
@@ -79,7 +113,6 @@ function UserAvatar({ user, position, rotation, onClick, showSeat }) {
       onPointerOut={() => setHover(false)}
     >
       {showSeat && <TheatreSeat />}
-      {/* User scaled down to fit small seats */}
       <group position={[0, showSeat ? 0.15 : 0, 0]} scale={showSeat ? 0.45 : 1}>
         <HumanoidCharacter color={shirtColor} isPaid={hasPaid} isHovered={hovered} />
       </group>
@@ -108,8 +141,8 @@ export default function UserGroup({ variant = 'circle' }) {
   const layout = useMemo(() => {
     if (participants.length === 0) return [];
     if (variant === 'theatre') {
-      const cols = 5; // Exactly 5 seats per row
-      const spacingX = 0.8; // Tight spacing for small seats
+      const cols = 5;
+      const spacingX = 0.8;
       const spacingZ = 1.5;
       return participants.map((user, i) => {
         const row = Math.floor(i / cols);

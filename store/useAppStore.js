@@ -22,6 +22,8 @@ export const useAppStore = create((set, get) => ({
         { id: 'u2', name: 'Bob', deposit: 0 },
         { id: 'u3', name: 'Charlie', deposit: 0 },
         { id: 'u4', name: 'Diana', deposit: 0 },
+        { id: 'u5', name: 'Shivam', deposit: 0 }
+        
       ] 
     },
     { id: '2', title: 'Ski Trip 2026', theme: 'trip', budgetGoal: 5000, totalPool: 1200, participants: [] },
@@ -30,13 +32,14 @@ export const useAppStore = create((set, get) => ({
       title: "Movie Night", 
       theme: 'movie', 
       budgetGoal: 1000, 
-      totalPool: 400, // Added some initial pool for visible progress
+      totalPool: 0, // Added some initial pool for visible progress
       participants: [
         { id: 'u1', name: 'Alice', deposit: 0 },
         { id: 'u2', name: 'Bob', deposit: 0 },
         { id: 'u3', name: 'Charlie', deposit: 0 },
         { id: 'u4', name: 'Diana', deposit: 0 },
         { id: 'u5', name: 'Eve', deposit: 0 },
+        { id: 'u6', name: 'Shivam', deposit: 0 },
       ] 
     }
   ],

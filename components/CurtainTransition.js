@@ -5,48 +5,55 @@ import { useAppStore, SPATIAL_STATES } from '../store/useAppStore'
 export default function CurtainTransition() {
   const { state, events, activeEventIndex } = useAppStore()
   const [active, setActive] = useState(false)
+  const [hasPlayed, setHasPlayed] = useState(false) // FIX: Prevents re-trigger on pay
   
-  // Track previous state to ensure we ONLY animate when ENTERING the room
   const prevStateRef = useRef(state)
 
   useEffect(() => {
+    // 1. RESET: If we leave the room, reset so it can play next time we enter
+    if (state !== SPATIAL_STATES.EVENT_ROOM) {
+      if (hasPlayed) setHasPlayed(false)
+      if (active) setActive(false)
+      prevStateRef.current = state
+      return
+    }
+
+    // 2. TRIGGER: Only if entering fresh and hasn't played this session
     const isEnteringRoom = state === SPATIAL_STATES.EVENT_ROOM && prevStateRef.current !== SPATIAL_STATES.EVENT_ROOM
     
-    if (isEnteringRoom) {
+    if (isEnteringRoom && !hasPlayed) {
       const evt = events[activeEventIndex]
       if (evt && evt.theme === 'movie') {
         setActive(true)
+        setHasPlayed(true) // Lock the session
         const t = setTimeout(() => setActive(false), 3000) 
         return () => clearTimeout(t)
       }
     }
+
     prevStateRef.current = state
-  }, [state, activeEventIndex, events])
+  }, [state, activeEventIndex, events, hasPlayed, active])
 
   if (!active) return null
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-none flex overflow-hidden">
-      
       {/* LEFT CURTAIN */}
       <div className="w-1/2 h-full bg-red-900 animate-curtain-left relative shadow-[10px_0_50px_rgba(0,0,0,0.5)] z-10">
-         {/* Fabric Texture Effect using CSS gradients */}
          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.4)_20%,transparent_40%,rgba(0,0,0,0.4)_60%,transparent_80%)] opacity-50"></div>
-         {/* Gold Trim */}
          <div className="absolute right-2 top-0 bottom-0 w-1 bg-yellow-600/50 shadow-[0_0_10px_#ffd700]"></div>
       </div>
 
       {/* RIGHT CURTAIN */}
       <div className="w-1/2 h-full bg-red-900 animate-curtain-right relative shadow-[-10px_0_50px_rgba(0,0,0,0.5)] z-10">
          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.4)_20%,transparent_40%,rgba(0,0,0,0.4)_60%,transparent_80%)] opacity-50"></div>
-         {/* Gold Trim */}
          <div className="absolute left-2 top-0 bottom-0 w-1 bg-yellow-600/50 shadow-[0_0_10px_#ffd700]"></div>
       </div>
 
       <style jsx>{`
         @keyframes slide-open-left {
           0% { transform: translateX(0); }
-          30% { transform: translateX(0); } /* Wait a beat */
+          30% { transform: translateX(0); }
           100% { transform: translateX(-100%); }
         }
         @keyframes slide-open-right {
