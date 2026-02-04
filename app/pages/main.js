@@ -6,6 +6,7 @@ import IntroDoors from '../../components/IntroDoors'
 import GraffitiTransition from '../../components/GraffitiTransition'
 import CurtainTransition from '../../components/CurtainTransition' // <--- NEW IMPORT
 import PaymentModal from '../../components/PaymentModal' 
+import BriefcaseTransition from '../../components/BriefcaseTransition'
 
 export default function CooperApp() {
   const { state, exitToGallery, nextStation, prevStation } = useAppStore()
@@ -49,28 +50,23 @@ export default function CooperApp() {
     <>
       <IntroDoors />
       <GraffitiTransition />
-      <CurtainTransition /> {/* <--- ADDED */}
+      <CurtainTransition />
+      <BriefcaseTransition /> 
       <PaymentModal />
 
       {state === SPATIAL_STATES.CREATING_EVENT && <CreateEventOverlay />}
 
       <div className="fixed inset-0 pointer-events-none z-50 p-10">
         {state === SPATIAL_STATES.EVENT_ROOM && (
-          <button 
-            className="pointer-events-auto px-8 py-3 rounded-full 
-                       bg-white/5 backdrop-blur-xl border border-white/20 
-                       text-white font-bold tracking-widest uppercase text-xs
-                       shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] 
-                       hover:bg-white/10 hover:shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] 
-                       hover:scale-105 hover:border-white/40 
-                       active:scale-95 transition-all duration-500 ease-out"
-            onClick={exitToGallery}
-          >
-            Back to Gallery
-          </button>
+           <button 
+             className="pointer-events-auto px-8 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/20 text-white font-bold tracking-widest uppercase text-xs shadow-lg hover:bg-white/10 hover:scale-105 transition-all"
+             onClick={exitToGallery}
+           >
+             Back to Gallery
+           </button>
         )}
         
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 text-black font-serif italic text-xl drop-shadow-md transition-opacity duration-1000">
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 text-white font-serif italic text-xl drop-shadow-md transition-opacity duration-1000 mix-blend-difference">
           {state === SPATIAL_STATES.MUSEUM_OVERVIEW && "The Collection"}
           {state === SPATIAL_STATES.CREATING_EVENT && "New Commission"}
         </div>

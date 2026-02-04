@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import { useRef, useState, useMemo } from 'react'
 import UserGroup from './UserGroup'
 
-// --- THEATRE STAGE ---
 function TheatreStage() {
   return (
     <group position={[0, 0, -9]}>
@@ -21,7 +20,6 @@ function TheatreStage() {
   )
 }
 
-// --- RED CURTAINS ---
 function RedCurtains() {
   return (
     <group position={[0, 3.5, -9.6]}>
@@ -41,7 +39,6 @@ function RedCurtains() {
   )
 }
 
-// --- CINEMATIC CELEBRATION ---
 function CinematicCelebration() {
   const groupRef = useRef();
   const particleCount = 100;
@@ -86,13 +83,15 @@ function CinematicCelebration() {
   );
 }
 
-function MovieScreen({ progress, goal, raised }) {
+function MovieScreen({ progress, goal, raised, categories }) {
   const height = 5.5;
   const width = 10;
   const fillRef = useRef();
   const textGroupRef = useRef();
   const [displayProgress, setDisplayProgress] = useState(0);
-  const percentage = Math.floor((raised / goal) * 100);
+  
+  // Safe Percentage Logic
+  const percentage = goal > 0 ? Math.floor((raised / goal) * 100) : 0;
 
   useFrame((state, delta) => {
     const targetProgress = progress;
@@ -112,43 +111,58 @@ function MovieScreen({ progress, goal, raised }) {
   
   return (
     <group position={[0, 4.5, -9.8]}>
-      {/* 1. Black Frame - Layered at Z=-0.02 */}
+      {/* 1. Black Frame */}
       <mesh position={[0, 0, -0.02]}>
         <planeGeometry args={[width + 0.6, height + 0.6]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
       
-      {/* 2. White Canvas - Layered at Z=0 */}
+      {/* 2. White Canvas */}
       <mesh receiveShadow={false}>
         <planeGeometry args={[width, height]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
 
-      {/* 3. Gold Liquid Fill - Layered at Z=0.01 */}
+      {/* 3. Gold Liquid Fill */}
       <mesh 
         ref={fillRef} 
         position={[0, -(height / 2), 0.01]} 
-        scale={[1, displayProgress, 1]} 
+        scale={[1, Math.max(0.01, displayProgress), 1]} 
         receiveShadow={false}
       >
          <planeGeometry args={[width, height]} />
          <meshBasicMaterial color="#ffd700" transparent opacity={0.9} />
       </mesh>
       
-      {/* 4. Text - Layered at Z=0.02 */}
+      {/* 4. Text Display */}
       <group ref={textGroupRef} position={[0, 0, 0.02]}>
-        <Text position={[0, 0.8, 0]} fontSize={0.6} font="/fonts/Geist-VariableFont_wght.ttf">
+        <Text position={[0, 1.2, 0]} fontSize={0.6} font="/fonts/Geist-VariableFont_wght.ttf">
           GOAL: ${goal}
           <meshStandardMaterial emissive="#00ffcc" emissiveIntensity={percentage >= 100 ? 10 : 4} toneMapped={false} color="#00ffcc" />
         </Text>
-        <Text position={[0, 0, 0]} fontSize={0.5} font="/fonts/Geist-VariableFont_wght.ttf">
+        <Text position={[0, 0.4, 0]} fontSize={0.5} font="/fonts/Geist-VariableFont_wght.ttf">
           RAISED: ${raised}
           <meshStandardMaterial emissive="#ff0099" emissiveIntensity={percentage >= 100 ? 10 : 4} toneMapped={false} color="#ff0099" />
         </Text>
-        <Text position={[0, -0.8, 0]} fontSize={0.4} font="/fonts/Geist-VariableFont_wght.ttf">
+        <Text position={[0, -0.4, 0]} fontSize={0.4} font="/fonts/Geist-VariableFont_wght.ttf">
           {percentage}% COMPLETED
           <meshStandardMaterial emissive={percentage >= 100 ? "#00ff00" : "#ffffff"} emissiveIntensity={percentage >= 100 ? 15 : 4} toneMapped={false} />
         </Text>
+
+        {/* --- MINI EVENTS / CATEGORIES --- */}
+        <group position={[0, -1.5, 0]}>
+          {categories.map((cat, i) => (
+            <Text 
+              key={cat.id || i} 
+              position={[0, -0.4 * i, 0]} 
+              fontSize={0.3} 
+              color="#000000" 
+              anchorX="center"
+            >
+               {cat.name}: ${cat.totalPooled}
+            </Text>
+          ))}
+        </group>
       </group>
 
       {percentage >= 100 && <CinematicCelebration />}
@@ -156,9 +170,29 @@ function MovieScreen({ progress, goal, raised }) {
   )
 }
 
+function ProjectorBeam() {
+  const beamRef = useRef();
+  useFrame((state) => {
+    if (beamRef.current) {
+      beamRef.current.material.opacity = 0.02 + Math.random() * 0.03;
+    }
+  });
+
+  return (
+    <group position={[0, 10, 5]}>
+      <mesh rotation={[Math.PI / 2.1, 0, 0]} position={[0, -5, -8.5]}>
+        <coneGeometry args={[7, 13, 32, 1, true]} />
+        <meshBasicMaterial color="#fff0e0" transparent opacity={0.04} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
+}
+
 export default function MovieTheatreRoom({ event }) {
   if (!event) return null;
-  const percentage = Math.min(1, Math.max(0, event.totalPool / (event.budgetGoal || 1)));
+  const percentage = event.percentage ? Math.min(1, event.percentage / 100) : 0;
+  const categories = event.rawCategories || [];
+  
   const projectorLight = useRef();
 
   useFrame((state) => {
@@ -175,7 +209,12 @@ export default function MovieTheatreRoom({ event }) {
       
       <TheatreStage />
       <RedCurtains />
-      <MovieScreen progress={percentage} goal={event.budgetGoal} raised={event.totalPool} />
+      <MovieScreen 
+        progress={percentage} 
+        goal={event.budgetGoal} 
+        raised={event.totalPool} 
+        categories={categories}
+      />
       <ProjectorBeam />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -189,25 +228,6 @@ export default function MovieTheatreRoom({ event }) {
       </group>
 
       <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={25} blur={3} far={2} color="#000000" />
-    </group>
-  )
-}
-
-function ProjectorBeam() {
-  const beamRef = useRef();
-  useFrame((state) => {
-    if (beamRef.current) {
-      beamRef.current.material.opacity = 0.02 + Math.random() * 0.03;
-    }
-  });
-
-  return (
-    <group position={[0, 10, 5]}>
-      {/* SHIFTED: Increased Z offset to -8.5 to ensure cone starts well after camera at Z=5 */}
-      <mesh rotation={[Math.PI / 2.1, 0, 0]} position={[0, -5, -8.5]}>
-        <coneGeometry args={[7, 13, 32, 1, true]} />
-        <meshBasicMaterial color="#fff0e0" transparent opacity={0.04} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
     </group>
   )
 }

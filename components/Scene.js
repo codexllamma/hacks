@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useAppStore, SPATIAL_STATES } from '../store/useAppStore';
@@ -6,9 +7,21 @@ import MuseumScene from './MuseumScene';
 import EventRoomScene from './EventRoomScene';
 import CameraDirector from './CameraDirector';
 import Stage from './Stage';
+import ActivityLog from './ActivityLog'; // <--- IMPORT THIS
 
 export default function Scene() {
-  const { state, activeEventIndex, events } = useAppStore();
+  const { state, activeEventIndex, events, resetView } = useAppStore();
+
+  // --- LISTEN FOR ESCAPE KEY ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        resetView();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [resetView]);
 
   const showGallery = 
     state === SPATIAL_STATES.INTRO || 
@@ -19,6 +32,10 @@ export default function Scene() {
 
   return (
     <div className="w-full h-screen fixed top-0 left-0 -z-10 bg-[#d6d3ce]">
+      
+      {/* UI OVERLAY */}
+      <ActivityLog /> 
+
       <Canvas 
         shadows="soft"
         camera={{ position: [0, 1.7, 15], fov: 50 }} 
@@ -32,14 +49,9 @@ export default function Scene() {
             enableZoom={true} 
             enablePan={false}
             enableRotate={true}
-            // --- CAMERA CONSTRAINTS ---
             minDistance={3}
             maxDistance={8.5} 
-            
-            // PREVENT GOING ABOVE CHANDELIER (approx 60 degrees from top)
             minPolarAngle={Math.PI / 3} 
-            
-            // PREVENT GOING BELOW GROUND (approx 85 degrees from top)
             maxPolarAngle={Math.PI / 2.1} 
           />
         )}

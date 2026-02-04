@@ -3,17 +3,22 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 
 export default function IntroDoors() {
+  const fetchEvents = useAppStore(s => s.fetchEvents) // Get fetch action
   const finishIntro = useAppStore(s => s.finishIntro)
   const [isOpen, setIsOpen] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
-    // 1. Wait for page load / textures (Small delay for drama)
+    // 1. TRIGGER DATA FETCH IMMEDIATELY
+    // By the time the 3.5s animation finishes, data should be ready.
+    fetchEvents();
+
+    // 2. Start Animation (Small delay for drama)
     const timer1 = setTimeout(() => {
       setIsOpen(true)
     }, 1000)
 
-    // 2. Cleanup after animation completes (2.5s duration)
+    // 3. Cleanup after animation completes
     const timer2 = setTimeout(() => {
       setIsVisible(false)
       finishIntro() // Unlock the app
@@ -23,7 +28,7 @@ export default function IntroDoors() {
       clearTimeout(timer1)
       clearTimeout(timer2)
     }
-  }, [finishIntro])
+  }, [finishIntro, fetchEvents])
 
   if (!isVisible) return null
 
@@ -35,7 +40,6 @@ export default function IntroDoors() {
           isOpen ? '-translate-x-full' : 'translate-x-0'
         }`}
       >
-        {/* Door Handle / Detail */}
         <div className="w-4 h-32 bg-[#b8860b] mr-4 rounded-sm shadow-inner opacity-80" />
       </div>
 
@@ -45,11 +49,10 @@ export default function IntroDoors() {
           isOpen ? 'translate-x-full' : 'translate-x-0'
         }`}
       >
-        {/* Door Handle / Detail */}
         <div className="w-4 h-32 bg-[#b8860b] ml-4 rounded-sm shadow-inner opacity-80" />
       </div>
 
-      {/* CENTER OVERLAY TEXT (Fades out) */}
+      {/* CENTER TEXT */}
       <div 
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
           isOpen ? 'opacity-0' : 'opacity-100'

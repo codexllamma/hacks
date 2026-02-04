@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model ActionLog {
@@ -15,123 +15,118 @@ model ActionLog {
 }
 
 model User {
-  id    String @id @default(cuid())
-  email String @unique
-
-  // Groups this user created
-  createdGroups Group[] @relation("GroupCreator")
-
-  // Groups this user is simply a member of
-  groups Group[] @relation("GroupMembers")
-
-  eventParticipations EventParticipant[]
-  Transactions        Transaction[]
+  id                  String             @id @default(cuid())
+  email               String             @unique
+  createdAt           DateTime           @default(now())
+  name                String?
+  updatedAt           DateTime
   categoryOptIns      CategoryMember[]
+  eventParticipations EventParticipant[]
+  createdGroups       Group[]            @relation("GroupCreator")
+  GroupMember         GroupMember[]
+  Transactions        Transaction[]
 }
 
 model Event {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  groupId     String
-  group       Group   @relation(fields: [groupId], references: id)
-
-  totalPooled Decimal @default(0)
-
+  id           String             @id @default(cuid())
+  name         String
+  description  String?
+  groupId      String
+  totalPooled  Decimal            @default(0)
+  createdAt    DateTime           @default(now())
+  budgetGoal   Decimal            @default(0)
+  group        Group              @relation(fields: [groupId], references: [id])
   participants EventParticipant[]
   categories   ExpenseCategory[]
-  createdAt    DateTime           @default(now())
   transactions Transaction[]
 }
 
 model Group {
-  id   String @id @default(cuid())
-  name String
-
-  // NEW: The user who has administrative control
-  creatorId String
-  creator   User   @relation("GroupCreator", fields: [creatorId], references: id)
-
-  // The many-to-many relationship for general members
-  members User[] @relation("GroupMembers")
-
-  events    Event[]
-  createdAt DateTime @default(now())
+  id          String        @id @default(cuid())
+  name        String
+  creatorId   String
+  createdAt   DateTime      @default(now())
+  events      Event[]
+  creator     User          @relation("GroupCreator", fields: [creatorId], references: [id])
+  GroupMember GroupMember[]
 }
 
-// ... rest of your Event, ExpenseCategory, and Rule models remain the same
-
 model EventParticipant {
-  id      String @id @default(cuid())
-  userId  String
-  eventId String
-  user    User   @relation(fields: [userId], references: id)
-  event   Event  @relation(fields: [eventId], references: id)
-  role    String @default("PARTICIPANT") // e.g., ORGANIZER, PAYER
+  id              String  @id @default(cuid())
+  userId          String
+  eventId         String
+  role            String  @default("PARTICIPANT")
+  individualShare Decimal @default(0)
+  event           Event   @relation(fields: [eventId], references: [id])
+  user            User    @relation(fields: [userId], references: [id])
 
   @@unique([userId, eventId])
 }
 
 model Transaction {
-  id     String  @id @default(cuid())
-  amount Decimal
-
-  // Status tracking for the "Shared Basket"
-  status TransactionStatus @default(PENDING)
-
-  // External reference (e.g., Stripe/PayPal/Blockchain transaction ID)
-  transactionRef String? @unique
-
-  userId String
-  user   User   @relation(fields: [userId], references: id)
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: id)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum TransactionStatus {
-  PENDING // User initiated deposit, but funds haven't cleared
-  SUCCESS // Funds are in the basket and ready to be spent
-  FAILED // Payment failed
-  REFUNDED // Excess balance sent back to user (Requirement #6)
+  id              String            @id @default(cuid())
+  amount          Decimal
+  status          TransactionStatus @default(PENDING)
+  transactionRef  String?           @unique
+  userId          String
+  eventId         String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  categoryId      String?
+  ExpenseCategory ExpenseCategory?  @relation(fields: [categoryId], references: [id])
+  event           Event             @relation(fields: [eventId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
 }
 
 model ExpenseCategory {
-  id      String @id @default(cuid())
-  name    String // e.g., "Tickets", "Food", "Travel"
-  eventId String
-  event   Event  @relation(fields: [eventId], references: id)
-
-  // Logic & Rules
+  id            String           @id @default(cuid())
+  name          String
+  eventId       String
   spendingLimit Decimal?
-  ruleType      String   @default("EQUAL_SPLIT") // Programmable logic type
-
-  members  CategoryMember[]
-  expenses Expense[]
+  ruleType      String           @default("EQUAL_SPLIT")
+  totalPooled   Decimal          @default(0)
+  members       CategoryMember[]
+  expenses      Expense[]
+  event         Event            @relation(fields: [eventId], references: [id])
+  Transaction   Transaction[]
 }
 
 model CategoryMember {
   id                String          @id @default(cuid())
   userId            String
   expenseCategoryId String
-  user              User            @relation(fields: [userId], references: id)
-  category          ExpenseCategory @relation(fields: [expenseCategoryId], references: id)
+  category          ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
 
   @@unique([userId, expenseCategoryId])
 }
 
 model Expense {
-  id          String  @id @default(cuid())
+  id          String          @id @default(cuid())
   amount      Decimal
   description String
-  receiptUrl  String? // From Bill Scanning & Upload
-  status      String  @default("PENDING") // For Rule-Based Authorization
+  receiptUrl  String?
+  status      String          @default("PENDING")
+  categoryId  String
+  createdAt   DateTime        @default(now())
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+}
 
-  categoryId String
-  category   ExpenseCategory @relation(fields: [categoryId], references: id)
+model GroupMember {
+  id       String   @id
+  userId   String
+  groupId  String
+  role     String   @default("MEMBER")
+  joinedAt DateTime @default(now())
+  Group    Group    @relation(fields: [groupId], references: [id])
+  User     User     @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now())
+  @@unique([userId, groupId])
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
 }

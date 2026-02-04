@@ -5,8 +5,6 @@ import * as THREE from 'three'
 import BirthdayCake from './BirthdayCake'
 import UserGroup from './UserGroup'
 
-// --- DECORATIONS ---
-
 function Chandelier() {
   return (
     <group position={[0, 4.5, 0]}>
@@ -77,23 +75,15 @@ function LEDStringLights() {
       <line geometry={lineGeometry}>
         <lineBasicMaterial color="#111111" />
       </line>
-
       {bulbs.map((p, i) => {
         const color = i % 2 === 0 ? "#ff0099" : "#00ffcc";
         return (
           <mesh key={i} position={p}>
             <sphereGeometry args={[0.09, 8, 8]} />
-            <meshStandardMaterial 
-              color={color} 
-              emissive={color} 
-              emissiveIntensity={8} 
-              toneMapped={false} 
-            />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={8} toneMapped={false} />
           </mesh>
         );
       })}
-
-      {/* Optimized Room Glow Lights */}
       <pointLight position={[-8, 4, 8]} intensity={0.5} distance={15} color="#ff0099" />
       <pointLight position={[8, 4, -8]} intensity={0.5} distance={15} color="#00ffcc" />
       <pointLight position={[-8, 4, -8]} intensity={0.5} distance={15} color="#ff0099" />
@@ -119,7 +109,10 @@ function RealisticTable() {
 
 export default function DetailedBirthdayRoom({ event }) {
   if (!event) return null;
-  const percentage = Math.floor((event.totalPool / (event.budgetGoal || 1)) * 100);
+  
+  // Use pre-calculated percentage from store, default to 0 if missing
+  const percentage = event.percentage || 0;
+  const categories = event.rawCategories || [];
 
   const floorTextures = useTexture({
     map: '/textures/floor/color.jpg',
@@ -146,16 +139,7 @@ export default function DetailedBirthdayRoom({ event }) {
     <group>
       <Environment preset="sunset" />
       <ambientLight intensity={0.6} color="#ffccaa" />
-
-      <spotLight 
-        position={[0, 8, 0]} 
-        angle={0.8} 
-        penumbra={0.5} 
-        intensity={2.5} 
-        castShadow 
-        color="#ffcc88" 
-      />
-
+      <spotLight position={[0, 8, 0]} angle={0.8} penumbra={0.5} intensity={2.5} castShadow color="#ffcc88" />
       <pointLight position={[0, 2, 8]} intensity={0.5} color="#ffd1a4" />
 
       <LEDStringLights />
@@ -166,13 +150,32 @@ export default function DetailedBirthdayRoom({ event }) {
       <BalloonBundle position={[-8, 1, 8]} colors={['#ff922b', '#fcc419', '#ff6b6b']} />
       <BalloonBundle position={[8, 1, 8]} colors={['#51cf66', '#329af0', '#20c997']} />
 
-      <group position={[0, 3.5, -9.4]}>
+      {/* --- INFO DISPLAY --- */}
+      <group position={[0, 4.5, -9.4]}>
         <Text fontSize={1.2} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#ff0099">
           GOAL: ${event.budgetGoal}
         </Text>
         <Text position={[0, -1, 0]} fontSize={0.8} color={percentage > 0 ? "#00ffcc" : "#888"} anchorX="center" anchorY="middle">
           RAISED: ${event.totalPool} ({percentage}%)
         </Text>
+        
+        {/* --- MINI EVENTS / CATEGORIES LIST --- */}
+        <group position={[0, -2.5, 0]}>
+          <Text position={[0, 0.5, 0]} fontSize={0.5} color="#ffdd00" anchorX="center">
+            EXPENSE BREAKDOWN
+          </Text>
+          {categories.map((cat, i) => (
+             <Text 
+               key={cat.id || i} 
+               position={[0, -0.6 * i, 0]} 
+               fontSize={0.4} 
+               color="#ffffff" 
+               anchorX="center"
+             >
+               • {cat.name}: ${cat.totalPooled} / ${cat.spendingLimit || '-'}
+             </Text>
+          ))}
+        </group>
       </group>
 
       <group>
