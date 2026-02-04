@@ -1,29 +1,56 @@
 'use client';
-
 import { Canvas } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
-import Experience from './Experience';
+import { OrbitControls } from '@react-three/drei';
+import { useAppStore, SPATIAL_STATES } from '../store/useAppStore';
+import MuseumScene from './MuseumScene';
+import EventRoomScene from './EventRoomScene';
+import CameraDirector from './CameraDirector';
+import Stage from './Stage';
 
 export default function Scene() {
+  const { state, activeEventIndex, events } = useAppStore();
+
+  const showGallery = 
+    state === SPATIAL_STATES.INTRO || 
+    state === SPATIAL_STATES.MUSEUM_OVERVIEW || 
+    state === SPATIAL_STATES.CREATING_EVENT;
+
+  const isInsideRoom = state === SPATIAL_STATES.EVENT_ROOM;
+
   return (
-    // The parent div must have a defined height for the Canvas to show up
-    <div className="w-full h-screen relative bg-gray-950">
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{ antialias: true }}
+    <div className="w-full h-screen fixed top-0 left-0 -z-10 bg-[#d6d3ce]">
+      <Canvas 
+        shadows="soft"
+        camera={{ position: [0, 1.7, 15], fov: 50 }} 
+        gl={{ antialias: true, powerPreference: "high-performance" }}
       >
-        {/* Lights */}
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <CameraDirector />
         
-        {/* Controls to move around during dev */}
-        <OrbitControls makeDefault />
+        {isInsideRoom && (
+          <OrbitControls 
+            makeDefault 
+            enableZoom={true} 
+            enablePan={false}
+            enableRotate={true}
+            // --- CAMERA CONSTRAINTS ---
+            minDistance={3}
+            maxDistance={8.5} 
+            
+            // PREVENT GOING ABOVE CHANDELIER (approx 60 degrees from top)
+            minPolarAngle={Math.PI / 3} 
+            
+            // PREVENT GOING BELOW GROUND (approx 85 degrees from top)
+            maxPolarAngle={Math.PI / 2.1} 
+          />
+        )}
 
-        {/* Your actual 3D content */}
-        <Experience />
+        <Stage />
 
-        {/* Environment for realistic reflections (optional but nice) */}
-        <Environment preset="city" />
+        {showGallery ? (
+          <MuseumScene />
+        ) : (
+          <EventRoomScene event={events[activeEventIndex]} />
+        )}
       </Canvas>
     </div>
   );
