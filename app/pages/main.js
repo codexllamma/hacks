@@ -4,7 +4,8 @@ import { useAppStore, SPATIAL_STATES } from '../../store/useAppStore'
 import CreateEventOverlay from '../../components/CreateEventOverlay'
 import IntroDoors from '../../components/IntroDoors'
 import GraffitiTransition from '../../components/GraffitiTransition'
-import PaymentModal from '../../components/PaymentModal' // NEW IMPORT
+import CurtainTransition from '../../components/CurtainTransition' // <--- NEW IMPORT
+import PaymentModal from '../../components/PaymentModal' 
 
 export default function CooperApp() {
   const { state, exitToGallery, nextStation, prevStation } = useAppStore()
@@ -48,14 +49,21 @@ export default function CooperApp() {
     <>
       <IntroDoors />
       <GraffitiTransition />
-      <PaymentModal /> {/* Added Payment UI */}
+      <CurtainTransition /> {/* <--- ADDED */}
+      <PaymentModal />
 
       {state === SPATIAL_STATES.CREATING_EVENT && <CreateEventOverlay />}
 
       <div className="fixed inset-0 pointer-events-none z-50 p-10">
         {state === SPATIAL_STATES.EVENT_ROOM && (
           <button 
-            className="pointer-events-auto bg-white px-4 py-2 shadow-lg rounded hover:bg-gray-50 transition-colors"
+            className="pointer-events-auto px-8 py-3 rounded-full 
+                       bg-white/5 backdrop-blur-xl border border-white/20 
+                       text-white font-bold tracking-widest uppercase text-xs
+                       shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] 
+                       hover:bg-white/10 hover:shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] 
+                       hover:scale-105 hover:border-white/40 
+                       active:scale-95 transition-all duration-500 ease-out"
             onClick={exitToGallery}
           >
             Back to Gallery

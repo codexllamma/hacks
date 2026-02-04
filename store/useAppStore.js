@@ -16,7 +16,7 @@ export const useAppStore = create((set, get) => ({
       title: "Alice's 25th", 
       theme: 'birthday', 
       budgetGoal: 500, 
-      totalPool: 0, // Starts empty
+      totalPool: 0,
       participants: [
         { id: 'u1', name: 'Alice', deposit: 0 },
         { id: 'u2', name: 'Bob', deposit: 0 },
@@ -24,40 +24,29 @@ export const useAppStore = create((set, get) => ({
         { id: 'u4', name: 'Diana', deposit: 0 },
       ] 
     },
-    { id: '2', title: 'Ski Trip 2026', theme: 'trip', budgetGoal: 5000, totalPool: 1200, participants: [] }
+    { id: '2', title: 'Ski Trip 2026', theme: 'trip', budgetGoal: 5000, totalPool: 1200, participants: [] },
+    { 
+      id: '3', 
+      title: "Movie Night", 
+      theme: 'movie', 
+      budgetGoal: 1000, 
+      totalPool: 400, // Added some initial pool for visible progress
+      participants: [
+        { id: 'u1', name: 'Alice', deposit: 0 },
+        { id: 'u2', name: 'Bob', deposit: 0 },
+        { id: 'u3', name: 'Charlie', deposit: 0 },
+        { id: 'u4', name: 'Diana', deposit: 0 },
+        { id: 'u5', name: 'Eve', deposit: 0 },
+      ] 
+    }
   ],
   
   stationIndex: 0, 
   activeEventIndex: 0,
   needsScrollReset: false,
-  // Track which user is currently being paid for
   paymentTargetUserId: null, 
 
   setState: (state) => set({ state }),
-  
-  // ACTIONS
-  contribute: (eventId, userId, amount) => set((state) => {
-    const updatedEvents = state.events.map(ev => {
-      if (ev.id !== eventId) return ev;
-      
-      // Update Participant
-      const updatedParticipants = ev.participants.map(p => 
-        p.id === userId ? { ...p, deposit: p.deposit + amount } : p
-      );
-
-      // Update Total Pool
-      const newTotal = updatedParticipants.reduce((sum, p) => sum + p.deposit, 0);
-      
-      return { ...ev, participants: updatedParticipants, totalPool: newTotal };
-    });
-
-    return { events: updatedEvents, paymentTargetUserId: null }; // Close modal after pay
-  }),
-
-  setPaymentTarget: (userId) => set({ paymentTargetUserId: userId }),
-
-  // ... (Keep existing navigation/intro logic)
-  finishIntro: () => set({ state: SPATIAL_STATES.MUSEUM_OVERVIEW }),
   
   nextStation: () => {
     const { events, stationIndex } = get();
@@ -80,7 +69,12 @@ export const useAppStore = create((set, get) => ({
   })),
 
   addEvent: (newEvent) => set((state) => ({
-    events: [...state.events, { ...newEvent, id: Date.now().toString(), totalPool: 0, participants: [] }],
+    events: [...state.events, { 
+      ...newEvent, 
+      id: Date.now().toString(), 
+      totalPool: 0, 
+      participants: Array.from({ length: 5 }, (_, i) => ({ id: `u${i+1}`, name: `User ${i+1}`, deposit: 0 })) // Default 5 users
+    }],
     state: SPATIAL_STATES.MUSEUM_OVERVIEW,
     stationIndex: state.events.length + 1,
     activeEventIndex: state.events.length,
@@ -93,5 +87,25 @@ export const useAppStore = create((set, get) => ({
     paymentTargetUserId: null
   }),
 
-  clearScrollReset: () => set({ needsScrollReset: false })
+  clearScrollReset: () => set({ needsScrollReset: false }),
+
+  setPaymentTarget: (userId) => set({ paymentTargetUserId: userId }),
+
+  contribute: (eventId, userId, amount) => set((state) => {
+    const events = [...state.events];
+    const eventIndex = events.findIndex(e => e.id === eventId);
+    if (eventIndex > -1) {
+      const event = { ...events[eventIndex] };
+      const userIndex = event.participants.findIndex(u => u.id === userId);
+      if (userIndex > -1) {
+        event.participants = [...event.participants];
+        event.participants[userIndex] = { ...event.participants[userIndex], deposit: event.participants[userIndex].deposit + amount };
+        event.totalPool += amount;
+        events[eventIndex] = event;
+      }
+    }
+    return { events, paymentTargetUserId: null };
+  }),
+
+  finishIntro: () => set({ state: SPATIAL_STATES.MUSEUM_OVERVIEW })
 }));
