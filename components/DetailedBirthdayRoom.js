@@ -172,7 +172,7 @@ export default function DetailedBirthdayRoom({ event }) {
                color="#ffffff" 
                anchorX="center"
              >
-               • {cat.name}: ${cat.totalPooled} / ${cat.spendingLimit || '-'}
+               • {cat.name}: ${Number(cat.totalPooled).toFixed(2)} / ${Number(cat.spendingLimit).toFixed(2)}
              </Text>
           ))}
         </group>

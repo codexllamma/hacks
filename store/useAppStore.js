@@ -11,10 +11,10 @@ export const SPATIAL_STATES = {
 export const useAppStore = create((set, get) => ({
   state: SPATIAL_STATES.INTRO,
   
-  // Loading State for smooth transitions
   isLoading: true, 
   events: [], 
   availableUsers: [], 
+  auditLogs: [], 
 
   stationIndex: 0, 
   activeEventIndex: 0,
@@ -23,31 +23,30 @@ export const useAppStore = create((set, get) => ({
 
   setState: (state) => set({ state }),
 
-  // --- NEW ACTION: RESET TO START ---
   resetView: () => set({ 
     state: SPATIAL_STATES.MUSEUM_OVERVIEW,
     stationIndex: 0,
     activeEventIndex: 0,
     needsScrollReset: false,
-    paymentTargetUserId: null
+    paymentTargetUserId: null,
+    auditLogs: [] 
   }),
 
-  fetchEvents: async () => {
-    set({ isLoading: true });
+  // --- FETCH EVENTS ---
+  fetchEvents: async (silent = false) => {
+    if (!silent) set({ isLoading: true });
 
     try {
-      // A. Fetch Users
       const userRes = await fetch('/api/groups/users');
       if (userRes.ok) {
         const userData = await userRes.json();
         if (userData.users) set({ availableUsers: userData.users });
       }
 
-      // B. Fetch Events
       const res = await fetch('/api/events');
       if (!res.ok) {
         console.error("API Error (Events):", await res.text()); 
-        set({ isLoading: false });
+        if (!silent) set({ isLoading: false });
         return;
       }
 
@@ -61,37 +60,64 @@ export const useAppStore = create((set, get) => ({
           if (lowerName.includes('movie')) theme = 'movie';
           if (lowerName.includes('dine') || lowerName.includes('food')) theme = 'dineout';
 
-          const budget = parseFloat(e.budgetGoal) || 0;
+          // 1. ROBUST BUDGET CALCULATION
+          // If DB has 0, sum up the categories manually
+          let budget = parseFloat(e.budgetGoal) || 0;
           const pool = parseFloat(e.totalPooled) || 0;
+          
+          const rawCategories = e.categories.map(c => ({
+              id: c.id,
+              name: c.name,
+              totalPooled: parseFloat(c.totalPooled) || 0,
+              spendingLimit: parseFloat(c.spendingLimit) || 0,
+              members: c.members || []
+          }));
+
+          if (budget === 0 && rawCategories.length > 0) {
+             budget = rawCategories.reduce((acc, cat) => acc + cat.spendingLimit, 0);
+          }
+
+          // Safe Percentage
+          const percentage = budget > 0 ? Math.min(100, Math.floor((pool / budget) * 100)) : 0;
 
           return {
             id: e.id,
             title: e.name,
             theme: theme,
-            budgetGoal: budget,
+            budgetGoal: budget, // Now guaranteed to be correct
             totalPool: pool,
-            percentage: budget > 0 ? Math.min(100, Math.floor((pool / budget) * 100)) : 0,
+            percentage: percentage,
             participants: e.participants.map(p => ({
               id: p.user.id,
               name: p.user.name,
               deposit: 0 
             })),
-            rawCategories: e.categories.map(c => ({
-              id: c.id,
-              name: c.name,
-              totalPooled: parseFloat(c.totalPooled) || 0,
-              spendingLimit: parseFloat(c.spendingLimit) || 0
-            }))
+            rawCategories: rawCategories
           };
         });
 
         set({ events: mappedEvents, isLoading: false });
       } else {
-        set({ isLoading: false });
+        if (!silent) set({ isLoading: false });
       }
     } catch (err) {
       console.error("Failed to load events:", err);
-      set({ isLoading: false });
+      if (!silent) set({ isLoading: false });
+    }
+  },
+
+  // --- FETCH AUDIT LOGS ---
+  fetchAuditLogs: async (eventId) => {
+    if (!eventId) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}/audit`); 
+      if (!res.ok) return;
+      const logs = await res.json();
+      if (Array.isArray(logs)) {
+          set({ auditLogs: logs });
+      }
+    } catch (err) {
+      console.error("Failed to fetch logs", err);
     }
   },
   
@@ -105,10 +131,12 @@ export const useAppStore = create((set, get) => ({
     if (stationIndex > 0) set({ stationIndex: stationIndex - 1 });
   },
 
-  selectEvent: (index) => set({ 
-    activeEventIndex: index, 
-    state: SPATIAL_STATES.EVENT_ROOM 
-  }),
+  selectEvent: (index) => {
+    const { events } = get();
+    const event = events[index];
+    set({ activeEventIndex: index, state: SPATIAL_STATES.EVENT_ROOM });
+    if (event) get().fetchAuditLogs(event.id);
+  },
 
   startCreating: () => set((state) => ({
     state: SPATIAL_STATES.CREATING_EVENT,
@@ -133,10 +161,7 @@ export const useAppStore = create((set, get) => ({
         })
       });
 
-      if (!res.ok) {
-        console.error("Create Event Failed:", await res.text());
-        return;
-      }
+      if (!res.ok) return;
 
       await fetchEvents();
 
@@ -155,23 +180,24 @@ export const useAppStore = create((set, get) => ({
   exitToGallery: () => set({ 
     state: SPATIAL_STATES.MUSEUM_OVERVIEW,
     activeEventIndex: 0,
-    paymentTargetUserId: null
+    paymentTargetUserId: null,
+    auditLogs: [] 
   }),
 
   clearScrollReset: () => set({ needsScrollReset: false }),
 
   setPaymentTarget: (userId) => set({ paymentTargetUserId: userId }),
 
-  contribute: async (eventId, userId, amount) => {
-    const { events, fetchEvents } = get();
-    const event = events.find(e => e.id === eventId);
+  // --- UPDATED CONTRIBUTE ACTION (Fixes 400 Error) ---
+  contribute: async (eventId, userId, categoryId, amount) => {
+    const { fetchEvents, fetchAuditLogs } = get();
     
-    if (!event || !event.rawCategories || event.rawCategories.length === 0) {
-      console.error("No category found for this event");
-      return;
+    // 1. NAN / NULL PROTECTION
+    // If amount is not a valid number, stop here.
+    if (!eventId || !userId || !categoryId || isNaN(amount) || amount <= 0) {
+      console.error("Contribute aborted: Invalid Payload", { eventId, userId, categoryId, amount });
+      return; 
     }
-
-    const categoryId = event.rawCategories[0].id;
 
     try {
       const res = await fetch('/api/categories/deposit', {
@@ -180,20 +206,23 @@ export const useAppStore = create((set, get) => ({
         body: JSON.stringify({
           userId: userId,
           categoryId: categoryId,
-          amount: amount
+          amount: parseFloat(amount) // Ensure float
         })
       });
 
       if (!res.ok) {
-        console.error("Contribution Failed:", await res.text());
+        console.error("API Deposit Failed:", await res.text());
         return;
       }
 
-      await fetchEvents();
+      await Promise.all([
+        fetchEvents(),
+        fetchAuditLogs(eventId)
+      ]);
       set({ paymentTargetUserId: null });
 
     } catch (err) {
-      console.error("Contribution error:", err);
+      console.error("Contribution network error:", err);
     }
   },
 

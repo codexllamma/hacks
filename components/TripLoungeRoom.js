@@ -4,14 +4,13 @@ import {
   ContactShadows, 
   Text, 
   MeshTransmissionMaterial, 
-  Sparkles, 
   Float,
   Stars,
   Grid,
   useTexture
 } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useRef, useMemo } from 'react'
+import { useRef } from 'react'
 import * as THREE from 'three'
 import UserGroup from './UserGroup'
 
@@ -137,93 +136,38 @@ function LoungePlatform() {
   )
 }
 
-function PortalRing({ progress }) {
-  const count = 12
-  const radius = 6
-  const stones = useMemo(() => Array.from({ length: count }).map((_, i) => ({
-      angle: (i / count) * Math.PI * 2,
-      scatterPos: [(Math.random() - 0.5) * 15, -4 + Math.random() * 1, (Math.random() - 0.5) * 5],
-      scatterRot: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random()]
-  })), [])
-  
-  const groupRef = useRef()
-  useFrame((state) => {
-    if (!groupRef.current) return
-    const t = state.clock.elapsedTime
-    groupRef.current.children.forEach((mesh, i) => {
-      const stone = stones[i]
-      const currentProgress = Math.min(progress, 1)
-      const mix = Math.pow(currentProgress, 0.5) 
-      const targetX = Math.cos(stone.angle) * radius
-      const targetY = Math.sin(stone.angle) * radius + 4 
-      mesh.position.set(
-        THREE.MathUtils.lerp(stone.scatterPos[0], targetX, mix),
-        THREE.MathUtils.lerp(stone.scatterPos[1], targetY, mix),
-        THREE.MathUtils.lerp(stone.scatterPos[2], 0, mix)
-      )
-      mesh.rotation.set(
-        THREE.MathUtils.lerp(stone.scatterRot[0], 0, mix),
-        THREE.MathUtils.lerp(stone.scatterRot[1], 0, mix),
-        THREE.MathUtils.lerp(stone.scatterRot[2], stone.angle, mix)
-      )
-    })
-  })
-
-  return (
-    <group ref={groupRef} position={[0, 0, -25]}>
-      {stones.map((_, i) => (
-        <mesh key={i} castShadow>
-          <dodecahedronGeometry args={[0.8, 0]} />
-          <meshStandardMaterial color={progress >= 1 ? "#ffd700" : "#57534e"} emissive={progress >= 1 ? "#ffaa00" : "black"} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-// --- UPDATED PORTAL: Shows "Another World" ---
+// --- PORTAL: SLEEK FRAME & SEAMLESS WINDOW ---
 function PortalEventHorizon({ active }) {
-  const meshRef = useRef()
   // Load a scenic landscape texture
   const portalMap = useTexture('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')
-
-  useFrame((state) => {
-    if (meshRef.current && active) {
-      meshRef.current.rotation.z -= 0.05 
-      const s = 1 + Math.sin(state.clock.elapsedTime * 5) * 0.02
-      meshRef.current.scale.set(s, s, s)
-    }
-  })
 
   if (!active) return null
 
   return (
     <group position={[0, 4, -25]}>
-      {/* 1. Portal Rim */}
-      <mesh><ringGeometry args={[5.5, 6, 64]} /><meshBasicMaterial color="#00ffff" /></mesh>
-      
-      {/* 2. Destination World (The Image) */}
-      <mesh position={[0, 0, -0.1]}>
-        <circleGeometry args={[5.4, 64]} />
+      {/* 1. Sleek Metallic Frame (Torus) */}
+      <mesh>
+        <torusGeometry args={[5.5, 0.15, 32, 100]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          metalness={1} 
+          roughness={0.1} 
+          emissive="#ffffff"
+          emissiveIntensity={0.1}
+        />
+      </mesh>
+
+      {/* 2. Seamless Destination Window (No Distortion) */}
+      <mesh position={[0, 0, -0.05]}>
+        <circleGeometry args={[5.45, 64]} />
         <meshBasicMaterial map={portalMap} toneMapped={false} />
       </mesh>
 
-      {/* 3. Energy Field / Glass Distortion */}
-      <mesh ref={meshRef} position={[0, 0, 0.1]}>
-        <circleGeometry args={[5.5, 64]} />
-        <MeshTransmissionMaterial 
-          thickness={0.2} 
-          roughness={0} 
-          transmission={0.6} // Transparent enough to see the world behind
-          ior={1.2} 
-          color="#8b5cf6" 
-          distortion={0.8}
-          distortionScale={0.5}
-          temporalDistortion={0.2}
-        />
+      {/* 3. Subtle Inner Glow Ring */}
+      <mesh position={[0, 0, -0.04]}>
+        <ringGeometry args={[5.3, 5.5, 64]} />
+        <meshBasicMaterial color="#00ffff" transparent opacity={0.5} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
-      
-      <Sparkles count={200} scale={12} size={6} speed={0.4} opacity={1} color="#a78bfa" />
     </group>
   )
 }
@@ -264,7 +208,7 @@ export default function TripLoungeRoom({ event }) {
       <HologramGlobe />
       <Signpost />
 
-      <PortalRing progress={progress} />
+      {/* REMOVED ROCKS (PortalRing) */}
       <PortalEventHorizon active={isActivated} />
 
       {/* TEXT & INFO */}
@@ -288,7 +232,7 @@ export default function TripLoungeRoom({ event }) {
           >
             {isActivated 
               ? "PORTAL OPEN - READY TO TRAVEL" 
-              : `BUILDING PORTAL: ${percentage}% ($${event.totalPool} / $${event.budgetGoal})`
+              : `BUILDING PORTAL: ${percentage}% ($${Number(event.totalPool).toFixed(2)} / $${Number(event.budgetGoal).toFixed(2)})`
             }
           </Text>
 
@@ -298,10 +242,10 @@ export default function TripLoungeRoom({ event }) {
                 key={cat.id || i} 
                 position={[0, -0.8 * i, 0]} 
                 fontSize={0.5} 
-                color="#114e4e" // Bright Cyan for readability
+                color="#114e4e" 
                 anchorX="center"
               >
-                {cat.name} :: {Math.floor((cat.totalPooled / (cat.spendingLimit || 1)) * 100)}%
+                {cat.name} :: {Math.floor((cat.totalPooled / (cat.spendingLimit || 1)) * 100)}% ($${Number(cat.totalPooled).toFixed(2)} / $${Number(cat.spendingLimit).toFixed(2)})
               </Text>
             ))}
           </group>

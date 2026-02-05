@@ -137,11 +137,13 @@ function MovieScreen({ progress, goal, raised, categories }) {
       {/* 4. Text Display */}
       <group ref={textGroupRef} position={[0, 0, 0.02]}>
         <Text position={[0, 1.2, 0]} fontSize={0.6} font="/fonts/Geist-VariableFont_wght.ttf">
-          GOAL: ${goal}
+          {/* Formatted to 2 decimal places */}
+          GOAL: ${Number(goal).toFixed(2)}
           <meshStandardMaterial emissive="#00ffcc" emissiveIntensity={percentage >= 100 ? 10 : 4} toneMapped={false} color="#00ffcc" />
         </Text>
         <Text position={[0, 0.4, 0]} fontSize={0.5} font="/fonts/Geist-VariableFont_wght.ttf">
-          RAISED: ${raised}
+          {/* Formatted to 2 decimal places */}
+          RAISED: ${Number(raised).toFixed(2)}
           <meshStandardMaterial emissive="#ff0099" emissiveIntensity={percentage >= 100 ? 10 : 4} toneMapped={false} color="#ff0099" />
         </Text>
         <Text position={[0, -0.4, 0]} fontSize={0.4} font="/fonts/Geist-VariableFont_wght.ttf">
@@ -159,7 +161,8 @@ function MovieScreen({ progress, goal, raised, categories }) {
               color="#000000" 
               anchorX="center"
             >
-               {cat.name}: ${cat.totalPooled}
+               {/* Formatted to 2 decimal places */}
+               {cat.name}: ${Number(cat.totalPooled).toFixed(2)}
             </Text>
           ))}
         </group>

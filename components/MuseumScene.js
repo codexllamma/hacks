@@ -1,5 +1,5 @@
 'use client'
-import React, { Suspense, Component, useRef, useMemo } from 'react'
+import React, { Suspense, Component, useRef, useMemo, useEffect } from 'react' // Added useEffect
 import { useAppStore } from '../store/useAppStore'
 import { Text, Float, useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
@@ -160,12 +160,10 @@ function CreateFrame({ position, onClick }) {
 
 function GlassSkylight({ length }) {
   const segments = Math.ceil(length / 5);
-  // FIX: Shifted position Z slightly so beams align with wall segments
   return (
     <group position={[0, 10, -5]}> 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -length / 2 + 5]}>
         <planeGeometry args={[12, length]} />
-        {/* FIX: Lower opacity and remove transmission for better sun visibility */}
         <meshPhysicalMaterial 
             transparent 
             opacity={0.1} 
@@ -189,8 +187,6 @@ function GlassSkylight({ length }) {
 function WallSegment({ position, textureProps }) {
   return (
     <group position={position}>
-      {/* FIX: Removed 'position' offset here. The geometry is now centered 
-         relative to the group, so it rotates perfectly around the center. */}
       <mesh position={[0, 5, 0]} receiveShadow>
         <planeGeometry args={[20, 10]} />
         <meshStandardMaterial color="#fafaf9" roughness={0.9} {...textureProps} />
@@ -208,19 +204,23 @@ function WallSegment({ position, textureProps }) {
 }
 
 function MuseumLayout({ textures }) {
-  const { events, selectEvent, startCreating, isLoading } = useAppStore() 
+  const { events, selectEvent, startCreating, isLoading, fetchEvents } = useAppStore() // Added fetchEvents
   
+  // --- REAL-TIME UPDATES ---
+  useEffect(() => {
+    // Poll every 5 seconds for new events/updates
+    const interval = setInterval(() => {
+      fetchEvents(true); // Pass true to suppress loading spinner
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchEvents]);
+
   const spacing = 15;
   const eventCount = isLoading ? 3 : events.length; 
   const totalLength = Math.max(150, (eventCount + 1) * spacing + 50); 
   
   const wallSegmentCount = Math.ceil(totalLength / 20);
-  
-  // FIX: Calculate exact end position of the walls
-  // Each segment is 20 units. 
-  // If we have N segments, they span from Z=10 to Z=-(N*20 - 10).
   const wallEndPosition = -(wallSegmentCount * 20 - 10);
-  
   const createZPos = eventCount * -15 - 5;
 
   const floorMat = textures?.floorProps || { color: "#3d2b1f", roughness: 0.8 }
@@ -246,33 +246,29 @@ function MuseumLayout({ textures }) {
       {/* WALLS */}
       {Array.from({ length: wallSegmentCount }).map((_, i) => (
         <group key={`wall-${i}`} position={[0, 0, -i * 20]}>
-           {/* Right Wall: Positioned at X=8, Rotated -90deg */}
            <group position={[8, 0, 0]} rotation={[0, -Math.PI/2, 0]}>
              <WallSegment position={[0, 0, 0]} textureProps={wallMat} />
            </group>
-           {/* Left Wall: Positioned at X=-8, Rotated +90deg */}
            <group position={[-8, 0, 0]} rotation={[0, Math.PI/2, 0]}>
              <WallSegment position={[0, 0, 0]} textureProps={wallMat} />
            </group>
         </group>
       ))}
 
-      {/* FIX: END WALL 
-          Placed exactly at the end of the side walls (-20 per segment). 
-          Width increased to 18 to ensure overlaps.
-      */}
+      {/* END WALL */}
       <mesh position={[0, 5, wallEndPosition]} receiveShadow>
          <planeGeometry args={[18, 10]} />
          <meshStandardMaterial {...wallMat} color="#fafaf9" />
       </mesh>
 
-      {/* FRAMES */}
+      {/* SKELETONS (Shown on initial load only) */}
       {isLoading && Array.from({ length: 3 }).map((_, i) => (
         <group key={`skeleton-${i}`} position={[7.8, 4, i * -15 - 5]} rotation={[0, -Math.PI / 2, 0]}>
           <SkeletonFrame />
         </group>
       ))}
 
+      {/* REAL EVENTS */}
       {!isLoading && events.map((event, i) => (
         <group key={`event-${event.id}`} position={[7.8, 4, i * -15 - 5]} rotation={[0, -Math.PI / 2, 0]}>
           <group 

@@ -14,13 +14,16 @@ function HumanoidCharacter({ color, isPaid, isHovered }) {
     const t = state.clock.elapsedTime
     if (bodyRef.current && leftArmRef.current && rightArmRef.current) {
       if (isPaid) {
+        // DANCING ANIMATION
         bodyRef.current.position.y = 0.85 + Math.abs(Math.sin(t * 10)) * 0.3
         leftArmRef.current.rotation.z = Math.PI - 0.5 + Math.sin(t * 15) * 0.5
         rightArmRef.current.rotation.z = -Math.PI + 0.5 - Math.sin(t * 15) * 0.5
       } else if (isHovered) {
+        // HOVER ANIMATION
         rightArmRef.current.rotation.z = Math.PI - 0.2 + Math.sin(t * 15) * 0.5
         bodyRef.current.rotation.z = Math.sin(t * 10) * 0.05
       } else {
+        // IDLE STATE
         bodyRef.current.position.y = 0.85
         bodyRef.current.rotation.z = 0
         leftArmRef.current.rotation.z = 0
@@ -95,7 +98,10 @@ function TheatreSeat() {
 function UserAvatar({ user, position, rotation, onClick, showSeat }) {
   const groupRef = useRef();
   const [hovered, setHover] = useState(false);
+  
+  // LOGIC FIX: User dances if they have paid any amount > 0
   const hasPaid = user.deposit > 0;
+  
   const shirtColor = hasPaid ? "#10b981" : (hovered ? "#3b82f6" : "#6b7280");
 
   const handleClick = (e) => {
@@ -114,6 +120,7 @@ function UserAvatar({ user, position, rotation, onClick, showSeat }) {
     >
       {showSeat && <TheatreSeat />}
       <group position={[0, showSeat ? 0.15 : 0, 0]} scale={showSeat ? 0.45 : 1}>
+        {/* Pass hasPaid state to trigger animation */}
         <HumanoidCharacter color={shirtColor} isPaid={hasPaid} isHovered={hovered} />
       </group>
 
@@ -125,7 +132,7 @@ function UserAvatar({ user, position, rotation, onClick, showSeat }) {
           <div className={`px-2 py-1 rounded-md text-[8px] font-bold shadow-sm whitespace-nowrap border ${
             hasPaid ? 'bg-green-100 text-green-800 border-green-300' : 'bg-white text-gray-800 border-gray-300'
           }`}>
-            {user.name}
+            {user.name} {hasPaid ? "($$$)" : ""}
           </div>
         </div>
       </Html>
@@ -134,12 +141,37 @@ function UserAvatar({ user, position, rotation, onClick, showSeat }) {
 }
 
 export default function UserGroup({ variant = 'circle' }) {
-  const { events, activeEventIndex, setPaymentTarget } = useAppStore();
+  // 1. GET AUDIT LOGS
+  const { events, activeEventIndex, setPaymentTarget, auditLogs } = useAppStore();
   const activeEvent = events[activeEventIndex];
   const participants = activeEvent?.participants || [];
   
+  // 2. CALCULATE DEPOSITS DYNAMICALLY
+  const userDeposits = useMemo(() => {
+    const deposits = {};
+    if (auditLogs && Array.isArray(auditLogs)) {
+      auditLogs.forEach(log => {
+        const amount = Number(log.amount);
+        const userId = log.userId;
+        // Only count positive payments towards "hasPaid" status
+        if (!deposits[userId]) deposits[userId] = 0;
+        deposits[userId] += amount;
+      });
+    }
+    return deposits;
+  }, [auditLogs]);
+
   const layout = useMemo(() => {
     if (participants.length === 0) return [];
+    
+    // Helper to inject deposit
+    const mapUser = (user, x, y, z, rotation) => ({
+      ...user,
+      // 3. OVERRIDE STORE DEPOSIT WITH REAL CALCULATED DEPOSIT
+      deposit: userDeposits[user.id] || 0,
+      x, y, z, rotation
+    });
+
     if (variant === 'theatre') {
       const cols = 5;
       const spacingX = 0.8;
@@ -150,20 +182,34 @@ export default function UserGroup({ variant = 'circle' }) {
         const x = (col - (cols - 1) / 2) * spacingX;
         const z = row * spacingZ; 
         const y = row * 0.2; 
-        return { ...user, x, y, z, rotation: [0, 0, 0] };
+        return mapUser(user, x, y, z, [0, 0, 0]);
       });
     }
+    
     const radius = 3.5;
     return participants.map((user, i) => {
       const angle = (i / participants.length) * Math.PI * 2;
-      return { ...user, x: Math.cos(angle) * radius, y: 0, z: Math.sin(angle) * radius, rotation: [0, -angle + Math.PI / 2, 0] };
+      return mapUser(
+        user, 
+        Math.cos(angle) * radius, 
+        0, 
+        Math.sin(angle) * radius, 
+        [0, -angle + Math.PI / 2, 0]
+      );
     });
-  }, [participants, variant]);
+  }, [participants, variant, userDeposits]);
 
   return (
     <group>
       {layout.map((user) => (
-        <UserAvatar key={user.id} user={user} position={[user.x, user.y, user.z]} rotation={user.rotation} onClick={setPaymentTarget} showSeat={variant === 'theatre'} />
+        <UserAvatar 
+          key={user.id} 
+          user={user} 
+          position={[user.x, user.y, user.z]} 
+          rotation={user.rotation} 
+          onClick={setPaymentTarget} 
+          showSeat={variant === 'theatre'} 
+        />
       ))}
     </group>
   );
