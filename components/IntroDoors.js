@@ -59,8 +59,7 @@ export default function IntroDoors() {
         }`}
       >
         <h1 className="text-white font-serif text-3xl tracking-[0.5em] uppercase text-center drop-shadow-lg">
-          The<br/>Collection
-        </h1>
+          The<br/>Cooper        </h1>
       </div>
     </div>
   )

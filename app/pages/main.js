@@ -4,9 +4,11 @@ import { useAppStore, SPATIAL_STATES } from '../../store/useAppStore'
 import CreateEventOverlay from '../../components/CreateEventOverlay'
 import IntroDoors from '../../components/IntroDoors'
 import GraffitiTransition from '../../components/GraffitiTransition'
-import CurtainTransition from '../../components/CurtainTransition' // <--- NEW IMPORT
+import CurtainTransition from '../../components/CurtainTransition' 
 import PaymentModal from '../../components/PaymentModal' 
 import BriefcaseTransition from '../../components/BriefcaseTransition'
+import ProjectInfo from '../../components/ProjectInfo'   // <--- NEW
+import ActivityLog from '../../components/ActivityLog'   // <--- NEW
 
 export default function CooperApp() {
   const { state, exitToGallery, nextStation, prevStation } = useAppStore()
@@ -53,6 +55,10 @@ export default function CooperApp() {
       <CurtainTransition />
       <BriefcaseTransition /> 
       <PaymentModal />
+
+      {/* --- HUD ELEMENTS --- */}
+      <ProjectInfo />  {/* Top Left: Project Highlights */}
+      <ActivityLog />  {/* Top Right: Live Transactions */}
 
       {state === SPATIAL_STATES.CREATING_EVENT && <CreateEventOverlay />}
 
