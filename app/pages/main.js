@@ -7,8 +7,8 @@ import GraffitiTransition from '../../components/GraffitiTransition'
 import CurtainTransition from '../../components/CurtainTransition' 
 import PaymentModal from '../../components/PaymentModal' 
 import BriefcaseTransition from '../../components/BriefcaseTransition'
-import ProjectInfo from '../../components/ProjectInfo'   // <--- NEW
-import ActivityLog from '../../components/ActivityLog'   // <--- NEW
+import ProjectInfo from '../../components/ProjectInfo'
+import ActivityLog from '../../components/ActivityLog'
 
 export default function CooperApp() {
   const { state, exitToGallery, nextStation, prevStation } = useAppStore()
@@ -57,8 +57,12 @@ export default function CooperApp() {
       <PaymentModal />
 
       {/* --- HUD ELEMENTS --- */}
-      <ProjectInfo />  {/* Top Left: Project Highlights */}
-      <ActivityLog />  {/* Top Right: Live Transactions */}
+      
+      {/* FIX: Only show Project Info in the Museum Gallery */}
+      {state === SPATIAL_STATES.MUSEUM_OVERVIEW && <ProjectInfo />}
+      
+      {/* Activity Log handles its own visibility (Only shows in Event Room) */}
+      <ActivityLog />
 
       {state === SPATIAL_STATES.CREATING_EVENT && <CreateEventOverlay />}
 
